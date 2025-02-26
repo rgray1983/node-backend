@@ -23,8 +23,10 @@ const formSchema = new mongoose.Schema({
 
 // Pre-save hook to automatically generate a new sequential form number
 formSchema.pre('save', async function(next) {
-    const lastForm = await Form.findOne().sort({ formNumber: -1 }).exec();
-    this.formNumber = lastForm ? lastForm.formNumber + 1 : 1;
+    if (!this.formNumber) {  // Only generate a new number if it's not set
+        const lastForm = await Form.findOne().sort({ formNumber: -1 }).exec();
+        this.formNumber = lastForm ? lastForm.formNumber + 1 : 1;
+    }
     next();
 });
 
@@ -37,7 +39,8 @@ app.post("/forms", async (req, res) => {
 });
 
 app.get("/forms", async (req, res) => {
-    const forms = await Form.find().sort({ formNumber: -1 }).limit(10);  // Fetch latest 10 forms
+    // Ensure to get all forms, sorted by formNumber descending, and limit to 5
+    const forms = await Form.find().sort({ formNumber: -1 }).limit(5);  // Fetch latest 5 forms
     res.json(forms);
 });
 
@@ -69,7 +72,6 @@ app.delete("/forms/:id", async (req, res) => {
         res.status(500).json({ error: "Failed to delete form" });
     }
 });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
