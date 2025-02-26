@@ -38,10 +38,21 @@ app.post("/forms", async (req, res) => {
     res.status(201).json(newForm);
 });
 
-app.get("/forms", async (req, res) => {
-    // Ensure to get all forms, sorted by formNumber descending, and limit to 5
-    const forms = await Form.find().sort({ formNumber: -1 }).limit(5);  // Fetch latest 5 forms
-    res.json(forms);
+app.get('/forms/search', async (req, res) => {
+    try {
+        const searchTerm = req.query.q || '';  // Retrieve the search term from the query parameter
+        const forms = await Form.find({
+            $or: [
+                { field1: { $regex: searchTerm, $options: 'i' } },  // Search in 'Customer No.'
+                { field2: { $regex: searchTerm, $options: 'i' } },  // Search in 'Customer Name'
+                { field3: { $regex: searchTerm, $options: 'i' } }   // Search in 'Item Description'
+            ]
+        }).sort({ formNumber: -1 }).limit(5);  // Sort by formNumber descending, limit to 5 results
+        res.json(forms);
+    } catch (error) {
+        console.error("Error searching forms:", error);
+        res.status(500).send("Server Error");
+    }
 });
 
 app.put("/forms/:id", async (req, res) => {
