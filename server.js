@@ -13,10 +13,19 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log("MongoDB connected"))
   .catch(err => console.error(err));
 
+// Define form schema with an auto-incrementing 'formNumber' field
 const formSchema = new mongoose.Schema({
+    formNumber: { type: Number, unique: true },
     field1: String,
     field2: String,
     field3: String
+});
+
+// Pre-save hook to automatically generate a new sequential form number
+formSchema.pre('save', async function(next) {
+    const lastForm = await Form.findOne().sort({ formNumber: -1 }).exec();
+    this.formNumber = lastForm ? lastForm.formNumber + 1 : 1;
+    next();
 });
 
 const Form = mongoose.model("Form", formSchema);
@@ -28,7 +37,7 @@ app.post("/forms", async (req, res) => {
 });
 
 app.get("/forms", async (req, res) => {
-    const forms = await Form.find();
+    const forms = await Form.find().sort({ formNumber: -1 }).limit(10);  // Fetch latest 10 forms
     res.json(forms);
 });
 
